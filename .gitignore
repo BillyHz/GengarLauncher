@@ -1,0 +1,13 @@
+# Carpetas de datos (PESADAS)
+GengarFiles/
+GengarJDK/
+logs/
+
+# Carpetas de VS Code y Python
+.vscode/
+__pycache__/
+
+# Archivos de compilación (EXE)
+build/
+dist/
+*.spec
