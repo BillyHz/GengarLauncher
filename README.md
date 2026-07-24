@@ -1,1 +1,152 @@
+# HexLauncher
 
+> A lightweight, open-source Minecraft launcher with a cyberpunk aesthetic
+> and first-class mod loader support.
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Python 3.14](https://img.shields.io/badge/python-3.14-blue.svg)](https://www.python.org/downloads/)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows-0078d4.svg)](https://www.microsoft.com/windows)
+[![Version: 0.7.0](https://img.shields.io/badge/version-0.7.0_alpha-orange.svg)](#)
+
+---
+
+## ✨ Features
+
+- 🎮 **One-click Minecraft launch** — pick a version, enter a username, hit PLAY
+- 🔌 **Mod loader support** — Fabric, Forge, NeoForge out of the box
+- 📁 **Mod management** — drop `.jar` files into per-loader, per-version folders
+- 🎨 **Cyberpunk UI** — dark theme with neon cyan accents
+- 📦 **Standalone `.exe`** — no Python install required for end users
+- 🔓 **Free & open source** — GPL v3, no telemetry, no ads
+
+## 📥 Download
+
+Grab the latest release from the [**Releases**](../../releases) page.
+
+> **Windows Defender note:** the `.exe` is built with PyInstaller and may
+> trigger a SmartScreen warning on first run. See
+> [this guide](https://github.com/BillyHz/HexLauncher/wiki/Antivirus) for
+> how to add an exclusion.
+
+## 🚀 Quick start
+
+1. Download `HexLauncher.exe` from the latest release
+2. Put it in any folder (e.g. `C:\Games\HexLauncher\`)
+3. Run it
+4. On first launch, the app creates:
+   - `HexFiles/` — Minecraft installation
+   - `HexMods/` — your mod library
+   - `HexJDK/` — bundled Java runtime (auto-downloaded)
+5. Enter a username, pick a version, hit **PLAY**
+
+## 🧩 Adding mods
+
+1. Select a mod loader in the dropdown (Fabric, Forge, or NeoForge)
+2. Pick a Minecraft version
+3. Click **Open folder** in the MODS section
+4. Drop your `.jar` mods into the opened folder
+5. Hit **PLAY** — the loader is installed and your mods are loaded
+
+Mods are organized by loader and version:
+```
+HexMods/
+├── Fabric/
+│   ├── 1.21/
+│   │   └── sodium-fabric-1.21.jar
+│   └── 1.20.4/
+│       └── ...
+├── Forge/
+└── NeoForge/
+```
+
+## 🛠️ Building from source
+
+```bash
+# Clone
+git clone https://github.com/BillyHz/HexLauncher.git
+cd HexLauncher
+
+# Install deps
+py -3.14 -m pip install -r requirements.txt
+
+# Run from source
+py -3.14 main.py
+
+# Build standalone .exe
+py -3.14 -m pip install -r requirements-dev.txt
+py -3.14 -m PyInstaller --noconfirm --clean hexlauncher.spec
+# → dist/HexLauncher.exe
+```
+
+## 🧱 Tech stack
+
+| Layer | Tech |
+|---|---|
+| Language | Python 3.14 |
+| GUI | [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) |
+| Minecraft | [minecraft-launcher-lib](https://codeberg.org/JakobDev/minecraft-launcher-lib) |
+| Java | Temurin JDK 21 (auto-downloaded) |
+| Packaging | PyInstaller |
+| License | GPL v3 |
+
+## 🗺️ Roadmap
+
+- [ ] Linux & macOS support
+- [ ] Microsoft account authentication
+- [ ] Mod browser (Modrinth / CurseForge integration)
+- [ ] Auto-updater
+- [ ] Server management
+- [ ] Custom themes
+
+## 🤝 Contributing
+
+PRs welcome! For major changes, please open an issue first.
+
+```bash
+# Fork the repo, then:
+git checkout -b feature/my-feature
+git commit -m "Add my feature"
+git push origin feature/my-feature
+# Open a Pull Request on GitHub
+```
+
+## 💖 Sponsorship
+
+If HexLauncher makes your Minecraft life easier, consider supporting
+development:
+
+- [**Patreon**](https://www.patreon.com/HexLauncher) — monthly support, early access
+- [**Ko-fi**](https://ko-fi.com/HexLauncher) — one-time tip
+- ⭐ Star this repo — it helps more than you think
+
+## 📜 License
+
+HexLauncher is released under the **GNU General Public License v3.0**.
+See [LICENSE](LICENSE) for the full text.
+
+This means you can:
+- ✅ Use it for free
+- ✅ Modify it
+- ✅ Redistribute it
+
+As long as you:
+- 📖 Keep the same GPL v3 license
+- 📖 Disclose the source
+- 📖 State your changes
+
+## 🙏 Acknowledgments
+
+- [minecraft-launcher-lib](https://codeberg.org/JakobDev/minecraft-launcher-lib) by JakobDev
+- [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) by TomSchimansky
+- [Adoptium Temurin](https://adoptium.net/) for the JDK builds
+- The Minecraft community for endless modding inspiration
+
+## 📬 Contact
+
+- 🐛 Issues: [GitHub Issues](../../issues)
+- 💬 Discussions: [GitHub Discussions](../../discussions)
+- 🐦 Twitter: [@HexLauncher](https://twitter.com/HexLauncher)
+
+---
+
+Made with 💙 and a lot of ☕ by [BillyHz](https://github.com/BillyHz)
