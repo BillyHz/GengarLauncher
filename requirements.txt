@@ -1,5 +1,5 @@
-# GengarLauncher – Python 3.10 dependencies
-# Install with: py -3.10 -m pip install -r requirements.txt
+# HexLauncher – Python 3.14 dependencies
+# Install with: py -3.14 -m pip install -r requirements.txt
 
 customtkinter==5.2.2        # Dark-mode GUI framework (tkinter wrapper)
 darkdetect==0.8.0           # Detects OS dark/light theme (used by customtkinter)

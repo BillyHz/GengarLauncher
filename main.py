@@ -15,7 +15,7 @@ import sys
 # ── Path logic (works both as .py and compiled .exe) ──────────────────────────
 if getattr(sys, "frozen", False):
     BASE_PATH  = os.path.dirname(sys.executable)
-    BUNDLE_DIR = sys._MEIPASS
+    BUNDLE_DIR = getattr(sys, "_MEIPASS", BASE_PATH)
 else:
     BASE_PATH  = os.path.dirname(os.path.abspath(__file__))
     BUNDLE_DIR = BASE_PATH
@@ -24,28 +24,35 @@ def resource_path(rel):
     return os.path.join(BUNDLE_DIR, rel)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-MC_DIR    = os.path.join(BASE_PATH, "GengarFiles")
-MODS_DIR  = os.path.join(BASE_PATH, "GengarMods")
-JAVA_DIR  = os.path.join(BASE_PATH, "GengarJDK")
+MC_DIR    = os.path.join(BASE_PATH, "HexFiles")
+MODS_DIR  = os.path.join(BASE_PATH, "HexMods")
+JAVA_DIR  = os.path.join(BASE_PATH, "HexJDK")
 JAVA_BIN  = os.path.join(JAVA_DIR, "bin", "java.exe")
-ICON_NAME = resource_path("Gengar.ico")
+ICON_NAME = resource_path("Hex.ico")
 
-# Ensure GengarMods exists with subfolders for organization
+# Ensure HexMods exists with subfolders for organization
 os.makedirs(MODS_DIR, exist_ok=True)
 for loader_name in ["Fabric", "Forge", "NeoForge"]:
     os.makedirs(os.path.join(MODS_DIR, loader_name), exist_ok=True)
 
-# ── Palette ───────────────────────────────────────────────────────────────────
-BG          = "#1a1020"        # deep dark background
-CARD        = "#251630"        # card surface
-BORDER      = "#3d2550"        # subtle border
-PURPLE      = "#7b52ab"        # Gengar purple (primary)
-PURPLE_H    = "#5e3e84"        # hover
-PURPLE_DIM  = "#4a2f6b"        # pressed / disabled tint
-MUTED       = "#a188be"        # secondary text
-SUCCESS     = "#4caf82"
-WARN        = "#e07b39"
-WHITE       = "#f0eaf8"        # near-white text
+# ── Palette: Cyberpunk Cyan (tech neon) ───────────────────────────────────────
+BG          = "#07090d"        # near-black with cool tint
+CARD        = "#0d1218"        # card surface
+BORDER      = "#1a2530"        # subtle blue-gray border
+CYAN        = "#00e5ff"        # NEON CYAN — primary accent
+CYAN_H      = "#00b8d4"        # hover
+CYAN_DIM    = "#00838f"        # pressed / disabled tint
+MUTED       = "#5a7a8a"        # secondary text (muted blue-gray)
+SUCCESS     = "#00ff88"        # neon green
+WARN        = "#ff9100"        # neon orange
+WHITE       = "#e0f7fa"        # near-white text with cyan tint
+
+# ── Loaders: lower-case id → folder name ─────────────────────────────────────
+LOADER_FOLDERS = {
+    "fabric":   "Fabric",
+    "forge":    "Forge",
+    "neoforge": "NeoForge",
+}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -55,6 +62,13 @@ def _divider(parent):
 
 
 class CTkScrollableDropdown(tkinter.Toplevel):
+    """Fixed dropdown using a vanilla tk.Canvas instead of CTkScrollableFrame.
+
+    CTkScrollableFrame has a known sizing bug where the frame grows to fit
+    its content even when pack_propagate(False) is set. Using a plain Canvas
+    with an explicit height gives us a reliable hard cap on visible items.
+    """
+
     def __init__(self, attach_to, values=None, command=None, **kwargs):
         super().__init__(takefocus=True)
         self.attach_to = attach_to
@@ -66,16 +80,23 @@ class CTkScrollableDropdown(tkinter.Toplevel):
         self.configure(bg="#000001")
 
         self.transient(self.attach_to.winfo_toplevel())
-
         self.update_idletasks()
 
         x = self.attach_to.winfo_rootx()
         y = self.attach_to.winfo_rooty() + self.attach_to.winfo_height() + 4
         width = self.attach_to.winfo_width()
 
-        # Show 6 items max, scroll for more
+        # Cap visible items so the dropdown never overflows the window
         item_height = 26
-        visible_items = min(len(self.values), 6)
+        max_visible = 4
+        visible_items = min(len(self.values), max_visible)
+
+        top = self.attach_to.winfo_toplevel()
+        combo_bottom_in_win = self.attach_to.winfo_rooty() - top.winfo_rooty() + self.attach_to.winfo_height()
+        available_below = top.winfo_height() - combo_bottom_in_win - 16  # 16px margin
+        max_by_space = max(3, (available_below - 8) // item_height)
+        visible_items = min(visible_items, max_by_space)
+
         calculated_height = (visible_items * item_height) + 8
 
         # Outer container - dark with rounded corners and subtle border
@@ -84,52 +105,85 @@ class CTkScrollableDropdown(tkinter.Toplevel):
             corner_radius=10,
             border_width=1,
             border_color=BORDER,
-            fg_color=CARD
+            fg_color=CARD,
         )
         self.container.pack(fill="both", expand=False)
 
-        # Scrollable frame - thin dark scrollbar
-        self.scroll_frame = ctk.CTkScrollableFrame(
+        # Vanilla Canvas with explicit height (good citizen for sizing)
+        self.canvas = tkinter.Canvas(
             self.container,
-            corner_radius=8,
-            fg_color=CARD,
-            scrollbar_fg_color=BG,
-            scrollbar_button_color=PURPLE,
-            scrollbar_button_hover_color=PURPLE_H,
-            orientation="vertical"
+            bg=CARD,
+            highlightthickness=0,
+            bd=0,
+            height=calculated_height - 8,
         )
-        self.scroll_frame._parent_canvas.configure(height=calculated_height - 8)
-        self.scroll_frame.pack(fill="both", padx=2, pady=2)
-        self.scroll_frame.pack_propagate(False)
+        self.canvas.pack(side="left", fill="both", expand=True, padx=(2, 0), pady=2)
 
-        super().geometry(f"{width}x{calculated_height}+{x}+{y}")
+        self.scrollbar = ctk.CTkScrollbar(
+            self.container,
+            orientation="vertical",
+            command=self.canvas.yview,
+            button_color=CYAN,
+            button_hover_color=CYAN_H,
+            width=10,
+        )
+        self.scrollbar.pack(side="right", fill="y", padx=(0, 2), pady=2)
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Inner frame living inside the canvas — buttons go here
+        self.inner_frame = ctk.CTkFrame(self.canvas, fg_color=CARD)
+        self._canvas_window = self.canvas.create_window(
+            0, 0, window=self.inner_frame, anchor="nw"
+        )
 
         # Populate with version buttons - tech aesthetic
         self.buttons = []
         for value in self.values:
             btn = ctk.CTkButton(
-                self.scroll_frame,
+                self.inner_frame,
                 text=value,
                 anchor="w",
                 height=24,
                 corner_radius=6,
                 fg_color=BG,
                 text_color=WHITE,
-                hover_color=PURPLE,
+                hover_color=CYAN,
                 border_width=0,
                 font=("Segoe UI", 11),
-                command=lambda val=value: self._on_select(val)
+                command=lambda val=value: self._on_select(val),
             )
             btn.pack(fill="x", pady=1, padx=2)
             self.buttons.append(btn)
 
+        # Resize inner frame to match canvas width; configure scroll region
+        self.inner_frame.update_idletasks()
+        self.canvas.itemconfigure(self._canvas_window, width=self.canvas.winfo_width())
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        self.canvas.bind("<Configure>", self._on_canvas_resize)
+
+        # Mouse wheel scrolling
+        self.canvas.bind("<MouseWheel>", self._on_mousewheel)
+        self.canvas.bind("<Button-4>", lambda _: self.canvas.yview_scroll(-1, "units"))
+        self.canvas.bind("<Button-5>", lambda _: self.canvas.yview_scroll(1, "units"))
+        for btn in self.buttons:
+            btn.bind("<MouseWheel>", self._on_mousewheel)
+
+        super().geometry(f"{width}x{calculated_height}+{x}+{y}")
+
         # Global bindings to auto-close
         self.root = self.attach_to.winfo_toplevel()
-
         self._root_click_bind = self.root.bind("<Button-1>", self._check_click_outside, add="+")
-        self._root_configure_bind = self.root.bind("<Configure>", lambda e: self.destroy(), add="+")
-        self.bind("<FocusOut>", lambda e: self.destroy())
-        self.bind("<Escape>", lambda e: self.destroy())
+        self._root_configure_bind = self.root.bind("<Configure>", lambda _: self.destroy(), add="+")
+        self.bind("<FocusOut>", lambda _: self.destroy())
+        self.bind("<Escape>", lambda _: self.destroy())
+
+    def _on_canvas_resize(self, event):
+        self.canvas.itemconfigure(self._canvas_window, width=event.width)
+
+    def _on_mousewheel(self, event):
+        delta = -1 * (event.delta // 120) if event.delta else 0
+        if delta:
+            self.canvas.yview_scroll(delta, "units")
 
     def _on_select(self, value):
         self.attach_to._just_closed = True
@@ -175,12 +229,12 @@ class CTkScrollableDropdown(tkinter.Toplevel):
         super().destroy()
 
 
-class GengarLauncher(ctk.CTk):
+class HexLauncher(ctk.CTk):
     def __init__(self):
         self.queue = queue.Queue()
         super().__init__()
         self._process_queue()
-        self.title("GengarLauncher")
+        self.title("HexLauncher")
         self.geometry("420x540")
         self.resizable(False, False)
         self.configure(fg_color=BG)
@@ -225,12 +279,12 @@ class GengarLauncher(ctk.CTk):
         header.pack(fill="x")
 
         ctk.CTkLabel(
-            header, text="GengarLauncher",
-            font=("Segoe UI", 22, "bold"), text_color=PURPLE
+            header, text="HexLauncher",
+            font=("Segoe UI", 22, "bold"), text_color=CYAN
         ).pack(pady=(18, 2))
 
         ctk.CTkLabel(
-            header, text="Minecraft  ·  Cracked Edition",
+            header, text="Minecraft  ·  No Premium",
             font=("Segoe UI", 10), text_color=MUTED
         ).pack(pady=(0, 14))
 
@@ -260,12 +314,12 @@ class GengarLauncher(ctk.CTk):
             card,
             variable=self.version_var,
             values=["Loading…"],
-            command=lambda v: self._check_installed(v),
+            command=lambda v: (self._check_installed(v), self._update_mods_count()),
             width=180, height=30, corner_radius=8,
             fg_color=BG, border_color=BORDER, border_width=1,
-            button_color=PURPLE, button_hover_color=PURPLE_H,
-            dropdown_fg_color="#1e1228",
-            dropdown_hover_color=PURPLE_DIM,
+            button_color=CYAN, button_hover_color=CYAN_H,
+            dropdown_fg_color="#0d1218",
+            dropdown_hover_color=CYAN_DIM,
             dropdown_text_color=WHITE,
             text_color=WHITE, font=("Segoe UI", 12),
             dropdown_font=("Segoe UI", 11),
@@ -279,20 +333,21 @@ class GengarLauncher(ctk.CTk):
                 if getattr(self.version_combo, "_just_closed", False):
                     return
 
-                if hasattr(self.version_combo, "_active_dropdown") and self.version_combo._active_dropdown and self.version_combo._active_dropdown.winfo_exists():
-                    self.version_combo._active_dropdown.destroy()
-                    self.version_combo._active_dropdown = None
+                active_dropdown = getattr(self.version_combo, "_active_dropdown", None)
+                if active_dropdown and active_dropdown.winfo_exists():
+                    active_dropdown.destroy()
+                    setattr(self.version_combo, "_active_dropdown", None)
                     return
 
                 values = self.version_combo.cget("values")
                 if not values or values == ["Loading…"]:
                     return
 
-                self.version_combo._active_dropdown = CTkScrollableDropdown(
+                setattr(self.version_combo, "_active_dropdown", CTkScrollableDropdown(
                     attach_to=self.version_combo,
                     values=values,
                     command=self.version_combo._dropdown_callback
-                )
+                ))
             except Exception as e:
                 import traceback
                 with open("dropdown_error.log", "w") as f:
@@ -313,22 +368,43 @@ class GengarLauncher(ctk.CTk):
             card,
             variable=self.loader_var,
             values=["Vanilla", "Fabric", "Forge", "NeoForge"],
-            command=lambda _: self._update_version_list(),
+            command=lambda _: (self._update_version_list(), self._update_mods_count()),
             width=140, height=28, corner_radius=8,
-            fg_color=BG, button_color=PURPLE, button_hover_color=PURPLE_H,
-            dropdown_fg_color="#1e1228",
-            dropdown_hover_color=PURPLE_DIM,
+            fg_color=BG, button_color=CYAN, button_hover_color=CYAN_H,
+            dropdown_fg_color="#0d1218",
+            dropdown_hover_color=CYAN_DIM,
             text_color=WHITE, font=("Segoe UI", 11),
             dropdown_font=("Segoe UI", 11)
         )
         self.loader_menu.pack(anchor="w", padx=16, pady=(3, 10))
+
+        # Mods section (count + open folder)
+        self._field_label(card, "MODS")
+        self.mods_frame = ctk.CTkFrame(card, fg_color="transparent")
+        self.mods_frame.pack(fill="x", padx=16, pady=(3, 10))
+
+        self.mods_count_label = ctk.CTkLabel(
+            self.mods_frame, text="—",
+            font=("Segoe UI", 10), text_color=MUTED, anchor="w"
+        )
+        self.mods_count_label.pack(side="left")
+
+        self.open_mods_btn = ctk.CTkButton(
+            self.mods_frame, text="Open folder",
+            command=self._open_mods_folder,
+            width=110, height=24,
+            fg_color=BORDER, hover_color=CYAN_DIM,
+            text_color=WHITE,
+            font=("Segoe UI", 10)
+        )
+        self.open_mods_btn.pack(side="right")
 
         _divider(card)
 
         # Progress + status
         self.progress_bar = ctk.CTkProgressBar(
             card, height=5, corner_radius=4,
-            fg_color=BORDER, progress_color=PURPLE
+            fg_color=BORDER, progress_color=CYAN
         )
         self.progress_bar.set(0)
         self.progress_bar.pack(fill="x", padx=16, pady=(6, 2))
@@ -343,7 +419,7 @@ class GengarLauncher(ctk.CTk):
         self.play_button = ctk.CTkButton(
             card, text="▶   PLAY",
             command=self._start_launch_thread,
-            fg_color=PURPLE, hover_color=PURPLE_H,
+            fg_color=CYAN, hover_color=CYAN_H,
             font=("Segoe UI", 13, "bold"),
             height=40, corner_radius=10
         )
@@ -354,10 +430,10 @@ class GengarLauncher(ctk.CTk):
         footer.pack(fill="x", padx=24, pady=(8, 10))
         ctk.CTkLabel(
             footer, text="BillyHz", font=("Segoe UI", 10, "italic"),
-            text_color=PURPLE
+            text_color=CYAN
         ).pack(side="left")
         ctk.CTkLabel(
-            footer, text="Alpha 0.6.0", font=("Segoe UI", 10),
+            footer, text="Alpha 0.7.0", font=("Segoe UI", 10),
             text_color=MUTED
         ).pack(side="right")
 
@@ -431,7 +507,8 @@ class GengarLauncher(ctk.CTk):
             )
 
     def _sync_mods(self, loader_type: str, mc_version: str):
-        source_dir = os.path.join(MODS_DIR, loader_type.capitalize(), mc_version)
+        loader_folder = LOADER_FOLDERS.get(loader_type.lower(), loader_type.capitalize())
+        source_dir = os.path.join(MODS_DIR, loader_folder, mc_version)
         os.makedirs(source_dir, exist_ok=True)
 
         mc_mods_dir = os.path.join(MC_DIR, "mods")
@@ -449,6 +526,42 @@ class GengarLauncher(ctk.CTk):
             if os.path.isfile(src) and src.endswith(".jar"):
                 try: shutil.copy2(src, dst)
                 except Exception: pass
+
+    def _mods_folder_for(self, loader: str, version: str) -> str:
+        """Return the mod folder for the given loader+version (creating it)."""
+        if loader == "Vanilla" or version in ("Loading…", "No versions found", ""):
+            return MODS_DIR
+        loader_folder = LOADER_FOLDERS.get(loader.lower(), loader)
+        path = os.path.join(MODS_DIR, loader_folder, version)
+        os.makedirs(path, exist_ok=True)
+        return path
+
+    def _update_mods_count(self):
+        loader = self.loader_var.get()
+        version = self.version_var.get()
+        if loader == "Vanilla" or version in ("Loading…", "No versions found", ""):
+            self.mods_count_label.configure(text="Vanilla — no mods folder")
+            return
+        path = self._mods_folder_for(loader, version)
+        try:
+            count = sum(1 for f in os.listdir(path) if f.lower().endswith(".jar"))
+            self.mods_count_label.configure(text=f"{count} mod{'s' if count != 1 else ''}")
+        except Exception:
+            self.mods_count_label.configure(text="—")
+
+    def _open_mods_folder(self):
+        loader = self.loader_var.get()
+        version = self.version_var.get()
+        path = self._mods_folder_for(loader, version)
+        try:
+            if sys.platform == "win32":
+                os.startfile(path)  # type: ignore[attr-defined]
+            elif sys.platform == "darwin":
+                subprocess.run(["open", path])  # type: ignore[unreachable]
+            else:
+                subprocess.run(["xdg-open", path])  # type: ignore[unreachable]
+        except Exception as e:
+            self.status_label.configure(text=f"Could not open folder: {e}")
 
     # ── JDK ───────────────────────────────────────────────────────────────────
 
@@ -532,8 +645,13 @@ class GengarLauncher(ctk.CTk):
                     if ml.is_minecraft_version_supported(version):
                         set_status(f"Installing {selected_loader.capitalize()}…")
                         loader_ver = ml.get_latest_loader_version(version)
-                        ml.install(version, MC_DIR, loader_version=loader_ver, callback={"setStatus": set_status, "setProgress": set_progress, "setMax": set_max})
-                        launch_version = ml.get_id(version, loader_version=loader_ver)
+                        launch_version = ml.install(
+                            version,
+                            MC_DIR,
+                            loader_version=loader_ver,
+                            callback={"setStatus": set_status, "setProgress": set_progress, "setMax": set_max},
+                            java=JAVA_BIN,
+                        )
 
                         set_status(f"Syncing mods for {version}…")
                         self._sync_mods(selected_loader, version)
@@ -563,10 +681,10 @@ class GengarLauncher(ctk.CTk):
             )
 
             self.after(0, self.withdraw)
-            if os.name == "nt":
+            if sys.platform == "win32":
                 subprocess.run(cmd, creationflags=0x08000000)
             else:
-                subprocess.run(cmd)
+                subprocess.run(cmd)  # type: ignore[unreachable]
             self.after(0, self.deiconify)
 
         except Exception as err:
@@ -581,5 +699,5 @@ class GengarLauncher(ctk.CTk):
 
 if __name__ == "__main__":
     ctk.set_appearance_mode("dark")
-    app = GengarLauncher()
+    app = HexLauncher()
     app.mainloop()

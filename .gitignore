@@ -1,13 +1,141 @@
-# Carpetas de datos (PESADAS)
-GengarFiles/
-GengarJDK/
+# ──────────────────────────────────────────────────────────────────────────
+# HexLauncher .gitignore
+# Pensado para repo público: protege secrets, deps, builds y basura del IDE
+# ──────────────────────────────────────────────────────────────────────────
+
+# ── Runtime data (heavy, user-generated on first launch) ───────────────────
+HexFiles/
+HexJDK/
+HexMods/
 logs/
+*.log
 
-# Carpetas de VS Code y Python
-.vscode/
+# ── Secrets & credentials (CRITICAL for public repos) ─────────────────────
+# Anything matching these patterns will be ignored. Never commit these.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.pfx
+secrets/
+*.secret
+config.local.*
+credentials.*
+secrets.*
+
+# ── Python bytecode / cache / venvs ────────────────────────────────────────
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+.eggs/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
 
-# Archivos de compilación (EXE)
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python distribution / packaging (NOT for our PyInstaller output)
+develop-eggs/
+downloads/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info.bak
+
+# ── PyInstaller build artifacts (hexlauncher.spec IS tracked) ──────────────
 build/
 dist/
-*.spec
+*.spec.bak
+*.exe~
+
+# ── IDE / editor files (per-developer) ─────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# Editor swap/backup
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+*.orig
+*.rej
+
+# Specific editors
+*.sublime-project
+*.sublime-workspace
+.vscode-test/
+.history/
+.atom/
+.hypothesis/
+
+# ── Test / coverage reports ───────────────────────────────────────────────
+htmlcov/
+coverage.xml
+junit.xml
+.nyc_output/
+.tox/
+.cache/
+
+# ── Documentation builds ──────────────────────────────────────────────────
+docs/_build/
+docs/build/
+site/
+*.mo
+*.pot
+
+# ── Future-proof for Tauri / Electron migration ───────────────────────────
+node_modules/
+src-tauri/target/
+target/
+.next/
+.nuxt/
+out/
+.parcel-cache/
+
+# ── OS / filesystem junk ──────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.fseventsd
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.Trash-*
+.nfs*

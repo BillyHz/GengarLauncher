@@ -1,0 +1,7 @@
+# HexLauncher – Development dependencies
+# Install with: py -3.14 -m pip install -r requirements-dev.txt
+
+pyinstaller==6.10.0        # Build standalone .exe
+
+# Optional: code signing
+# signtool (Windows SDK)
