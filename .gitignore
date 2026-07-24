@@ -139,3 +139,11 @@ $RECYCLE.BIN/
 .fuse_hidden*
 .Trash-*
 .nfs*
+
+# Local-only / personal build files (kept out of public repo)
+sign.bat
+test_size.py
+make_icon.py
+build.bat
+ANTIVIRUS.md
+migration/
